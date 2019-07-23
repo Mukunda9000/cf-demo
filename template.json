@@ -1,0 +1,95 @@
+{
+    "Description": "HelloWorld web application",
+    "Outputs": {
+        "InstancePublicIp": {
+            "Description": "Public IP of our instance.",
+            "Value": {
+                "Fn::GetAtt": [
+                    "instance",
+                    "PublicIp"
+                ]
+            }
+        },
+        "WebUrl": {
+            "Description": "Application endpoint",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "http://",
+                        {
+                            "Fn::GetAtt": [
+                                "instance",
+                                "PublicDnsName"
+                            ]
+                        },
+                        ":",
+                        "5000"
+                    ]
+                ]
+            }
+        }
+    },
+    "Parameters": {
+        "KeyPair": {
+            "ConstraintDescription": "name of an existing EC2 KeyPair.",
+            "Description": "Name of an existing EC2 KeyPair to SSH",
+            "Type": "AWS::EC2::KeyPair::KeyName"
+        }
+    },
+    "Resources": {
+        "SecurityGroup": {
+            "Properties": {
+                "GroupDescription": "Allow SSH and TCP/5000 access",
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "22",
+                        "IpProtocol": "tcp",
+                        "ToPort": "22"
+                    },
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "5000",
+                        "IpProtocol": "tcp",
+                        "ToPort": "5000"
+                    }
+                ]
+            },
+            "Type": "AWS::EC2::SecurityGroup"
+        },
+        "instance": {
+            "Properties": {
+                "ImageId": "ami-056ee704806822732",
+                "InstanceType": "t2.micro",
+                "KeyName": {
+                    "Ref": "KeyPair"
+                },
+                "SecurityGroups": [
+                    {
+                        "Ref": "SecurityGroup"
+                    }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "\n",
+                            [
+                                "#!/bin/bash",
+                                "sudo yum update",
+                                "sudo yum install python3 -y",
+                                "sudo pip3 install flask",
+                                "echo 'y' | sudo yum install curl-devel expat-devel gettext-devel openssl-devel zlib-devel",
+                                "echo 'y' | sudo yum install git-core",
+                                "sudo git clone https://github.com/Mukunda9000/ci-cd-demo.git",
+                                "cd ci-cd-demo",
+                                "sudo python3 ./src/app.py"
+                            ]
+                        ]
+                    }
+                }
+            },
+            "Type": "AWS::EC2::Instance"
+        }
+    }
+}
